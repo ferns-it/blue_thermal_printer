@@ -17,10 +17,10 @@ class _MyAppState extends State<MyApp> {
   BlueThermalPrinter bluetooth = BlueThermalPrinter.instance;
 
   List<BluetoothDevice> _devices = [];
-  BluetoothDevice _device;
+  late BluetoothDevice _device;
   bool _connected = false;
-  String pathImage;
-  TestPrint testPrint;
+  String pathImage = '';
+  late TestPrint testPrint;
 
   @override
   void initState() {
@@ -43,7 +43,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> initPlatformState() async {
-    bool isConnected = await bluetooth.isConnected;
+    bool isConnected = await bluetooth.isConnected ?? false;
     List<BluetoothDevice> devices = [];
     try {
       devices = await bluetooth.getBondedDevices();
@@ -150,7 +150,10 @@ class _MyAppState extends State<MyApp> {
                     Expanded(
                       child: DropdownButton(
                         items: _getDeviceItems(),
-                        onChanged: (value) => setState(() => _device = value),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() => _device = value as BluetoothDevice);
+                        },
                         value: _device,
                       ),
                     ),
@@ -164,7 +167,7 @@ class _MyAppState extends State<MyApp> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: <Widget>[
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(primary: Colors.brown),
+                      style: ElevatedButton.styleFrom(foregroundColor:  Colors.brown),
                       onPressed: () {
                         initPlatformState();
                       },
@@ -177,8 +180,7 @@ class _MyAppState extends State<MyApp> {
                       width: 20,
                     ),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          primary: _connected ? Colors.red : Colors.green),
+                      style: ElevatedButton.styleFrom(foregroundColor: _connected ? Colors.red : Colors.green),
                       onPressed: _connected ? _disconnect : _connect,
                       child: Text(
                         _connected ? 'Disconnect' : 'Connect',
@@ -188,15 +190,13 @@ class _MyAppState extends State<MyApp> {
                   ],
                 ),
                 Padding(
-                  padding:
-                      const EdgeInsets.only(left: 10.0, right: 10.0, top: 50),
+                  padding: const EdgeInsets.only(left: 10.0, right: 10.0, top: 50),
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(primary: Colors.brown),
+                    style: ElevatedButton.styleFrom(foregroundColor: Colors.brown),
                     onPressed: () {
                       testPrint.sample(pathImage);
                     },
-                    child: Text('PRINT TEST',
-                        style: TextStyle(color: Colors.white)),
+                    child: Text('PRINT TEST', style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
@@ -216,7 +216,7 @@ class _MyAppState extends State<MyApp> {
     } else {
       _devices.forEach((device) {
         items.add(DropdownMenuItem(
-          child: Text(device.name),
+          child: Text(device.name ?? 'No name'),
           value: device,
         ));
       });
@@ -229,7 +229,7 @@ class _MyAppState extends State<MyApp> {
       show('No device selected.');
     } else {
       bluetooth.isConnected.then((isConnected) {
-        if (!isConnected) {
+        if (isConnected == false ) {
           bluetooth.connect(_device).catchError((error) {
             setState(() => _connected = false);
           });
@@ -247,8 +247,7 @@ class _MyAppState extends State<MyApp> {
 //write to app path
   Future<void> writeToFile(ByteData data, String path) {
     final buffer = data.buffer;
-    return new File(path).writeAsBytes(
-        buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+    return new File(path).writeAsBytes(buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
   }
 
   Future show(
